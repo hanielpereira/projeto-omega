@@ -16,7 +16,7 @@ public class Main extends Application {
 
         new GameLoop(root, scene);
 
-        stage.setTitle("atv_gameloop_projetc_IA");
+        stage.setTitle("projeto-omega");
         stage.setScene(scene);
         stage.show();
 
