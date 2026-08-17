@@ -3,6 +3,8 @@ package org.example.entities;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import org.example.input.Keyboard;
+import org.example.world.Tile;
+import org.example.world.TileMap;
 
 public class Player {
 
@@ -13,8 +15,10 @@ public class Player {
     private final double height;
 
     private final Keyboard keyboard;
+    private final TileMap tileMap;
 
-    public Player(double x, double y, double width, double height, Keyboard keyboard) {
+    public Player(double x, double y, double width, double height,
+                  Keyboard keyboard, TileMap tileMap) {
 
         this.x = x;
         this.y = y;
@@ -23,52 +27,82 @@ public class Player {
         this.height = height;
 
         this.keyboard = keyboard;
-
+        this.tileMap = tileMap;
     }
 
     public void update(double deltaTime) {
 
         double speed = 250;
 
+        double movementX = 0;
+        double movementY = 0;
+
         if (keyboard.isUp()) {
-            y -= speed * deltaTime;
+            movementY -= speed * deltaTime;
         }
 
         if (keyboard.isDown()) {
-            y += speed * deltaTime;
+            movementY += speed * deltaTime;
         }
 
         if (keyboard.isLeft()) {
-            x -= speed * deltaTime;
+            movementX -= speed * deltaTime;
         }
 
         if (keyboard.isRight()) {
-            x += speed * deltaTime;
+            movementX += speed * deltaTime;
         }
 
-        if (x < 0) {
-            x = 0;
+        if (canMoveTo(x + movementX, y)) {
+            x += movementX;
         }
 
-        if (y < 0) {
-            y = 0;
+        if (canMoveTo(x, y + movementY)) {
+            y += movementY;
+        }
+    }
+
+    private boolean canMoveTo(double nextX, double nextY) {
+
+        if (nextX < 0 || nextY < 0) {
+            return false;
         }
 
-        if (x > 800 - width) {
-            x = 800 - width;
+        if (nextX + width > TileMap.WIDTH * TileMap.TILE_SIZE) {
+            return false;
         }
 
-        if (y > 600 - height) {
-            y = 600 - height;
+        if (nextY + height > TileMap.HEIGHT * TileMap.TILE_SIZE) {
+            return false;
         }
 
+        int leftTile = (int) (nextX / TileMap.TILE_SIZE);
+        int rightTile =
+                (int) ((nextX + width - 1) / TileMap.TILE_SIZE);
+
+        int topTile = (int) (nextY / TileMap.TILE_SIZE);
+        int bottomTile =
+                (int) ((nextY + height - 1) / TileMap.TILE_SIZE);
+
+        for (int row = topTile; row <= bottomTile; row++) {
+
+            for (int col = leftTile; col <= rightTile; col++) {
+
+                Tile tile = tileMap.getTile(row, col);
+
+                if (!tile.isWalkable()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public void render(GraphicsContext gc) {
 
         gc.setFill(Color.BLUE);
         gc.fillRect(x, y, width, height);
-
     }
 
     public double getX() {

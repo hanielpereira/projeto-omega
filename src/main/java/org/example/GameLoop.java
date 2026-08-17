@@ -7,6 +7,9 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import org.example.entities.Player;
 import org.example.input.Keyboard;
+import javafx.scene.paint.Color;
+import org.example.world.Tile;
+import org.example.world.TileMap;
 
 public class GameLoop {
 
@@ -14,6 +17,7 @@ public class GameLoop {
     private final GraphicsContext gc;
     private final Player player;
     private final Keyboard keyboard;
+    private final TileMap tileMap;
 
     private long lastTime = 0;
 
@@ -24,9 +28,11 @@ public class GameLoop {
 
         root.getChildren().add(canvas);
 
+        tileMap = new TileMap();
+
         keyboard = new Keyboard(scene);
 
-        player = new Player(100, 100, 100, 100, keyboard);
+        player = new Player(100, 100, 30, 30, keyboard, tileMap);
 
         startGameLoop();
 
@@ -68,10 +74,51 @@ public class GameLoop {
 
         gc.clearRect(0, 0, 800, 600);
 
+        renderMap();
+
         player.render(gc);
 
         gc.fillText("X: " + (int) player.getX(), 10, 20);
         gc.fillText("Y: " + (int) player.getY(), 10, 40);
+
+    }
+
+    private void renderMap() {
+
+        for (int row = 0; row < TileMap.HEIGHT; row++) {
+
+            for (int col = 0; col < TileMap.WIDTH; col++) {
+
+                Tile tile = tileMap.getTile(row, col);
+
+                if (tile.getType() == Tile.Type.WALL) {
+
+                    gc.setFill(Color.DARKGRAY);
+
+                } else if (tile.getType() == Tile.Type.MUD) {
+
+                    gc.setFill(Color.BURLYWOOD);
+
+                } else if (tile.getType() == Tile.Type.CONTAMINATED) {
+
+                    gc.setFill(Color.LIGHTGREEN);
+
+                } else {
+
+                    gc.setFill(Color.LIGHTGRAY);
+
+                }
+
+                gc.fillRect(
+                        col * TileMap.TILE_SIZE,
+                        row * TileMap.TILE_SIZE,
+                        TileMap.TILE_SIZE,
+                        TileMap.TILE_SIZE
+                );
+
+            }
+
+        }
 
     }
 
