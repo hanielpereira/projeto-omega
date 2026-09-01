@@ -5,9 +5,10 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import org.example.entities.Agent;
 import org.example.entities.Player;
 import org.example.input.Keyboard;
-import javafx.scene.paint.Color;
 import org.example.world.Tile;
 import org.example.world.TileMap;
 
@@ -16,8 +17,12 @@ public class GameLoop {
     private final Canvas canvas;
     private final GraphicsContext gc;
     private final Player player;
+    private final Agent agent;
     private final Keyboard keyboard;
     private final TileMap tileMap;
+
+    private static final int GOAL_ROW = 2;
+    private static final int GOAL_COL = 13;
 
     private long lastTime = 0;
 
@@ -32,10 +37,24 @@ public class GameLoop {
 
         keyboard = new Keyboard(scene);
 
-        player = new Player(100, 100, 30, 30, keyboard, tileMap);
+        player = new Player(
+                100,
+                100,
+                30,
+                30,
+                keyboard,
+                tileMap
+        );
+
+        agent = new Agent(
+                13,
+                2,
+                GOAL_ROW,
+                GOAL_COL,
+                tileMap
+        );
 
         startGameLoop();
-
     }
 
     private void startGameLoop() {
@@ -50,37 +69,85 @@ public class GameLoop {
                     return;
                 }
 
-                double deltaTime = (now - lastTime) / 1_000_000_000.0;
+                double deltaTime =
+                        (now - lastTime) / 1_000_000_000.0;
+
                 lastTime = now;
 
                 update(deltaTime);
                 render();
-
             }
-
         };
 
         timer.start();
-
     }
 
     private void update(double deltaTime) {
 
         player.update(deltaTime);
-
+        agent.update(deltaTime);
     }
 
     private void render() {
 
         gc.clearRect(0, 0, 800, 600);
 
+        // Desenha o cenário
         renderMap();
 
+        // Destaca o caminho calculado pelo A*
+        renderPath();
+
+        // Marca o destino
+        renderGoal();
+
+        // Desenha os personagens
         player.render(gc);
+        agent.render(gc);
 
-        gc.fillText("X: " + (int) player.getX(), 10, 20);
-        gc.fillText("Y: " + (int) player.getY(), 10, 40);
+        gc.setFill(Color.BLACK);
 
+        gc.fillText(
+                "X: " + (int) player.getX(),
+                10,
+                20
+        );
+
+        gc.fillText(
+                "Y: " + (int) player.getY(),
+                10,
+                40
+        );
+    }
+
+    private void renderPath() {
+
+        gc.setFill(Color.LIGHTBLUE);
+
+        for (int[] position : agent.getPath()) {
+
+            int row = position[0];
+            int col = position[1];
+
+            gc.fillRect(
+                    col * TileMap.TILE_SIZE,
+                    row * TileMap.TILE_SIZE,
+                    TileMap.TILE_SIZE,
+                    TileMap.TILE_SIZE
+            );
+        }
+    }
+
+    private void renderGoal() {
+
+        gc.setFill(Color.LIMEGREEN);
+
+        gc.fillRect(
+                GOAL_COL * TileMap.TILE_SIZE,
+                GOAL_ROW * TileMap.TILE_SIZE,
+                TileMap.TILE_SIZE,
+                TileMap.TILE_SIZE
+        );
     }
 
     private void renderMap() {
@@ -106,7 +173,6 @@ public class GameLoop {
                 } else {
 
                     gc.setFill(Color.LIGHTGRAY);
-
                 }
 
                 gc.fillRect(
@@ -115,11 +181,7 @@ public class GameLoop {
                         TileMap.TILE_SIZE,
                         TileMap.TILE_SIZE
                 );
-
             }
-
         }
-
     }
-
 }
