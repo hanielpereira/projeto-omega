@@ -4,6 +4,7 @@ import javafx.animation.AnimationTimer;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import org.example.entities.Agent;
@@ -21,8 +22,10 @@ public class GameLoop {
     private final Keyboard keyboard;
     private final TileMap tileMap;
 
-    private static final int GOAL_ROW = 2;
-    private static final int GOAL_COL = 13;
+    private int goalRow = 2;
+    private int goalCol = 13;
+
+    private boolean alternateGoal = false;
 
     private long lastTime = 0;
 
@@ -49,12 +52,48 @@ public class GameLoop {
         agent = new Agent(
                 13,
                 2,
-                GOAL_ROW,
-                GOAL_COL,
+                goalRow,
+                goalCol,
                 tileMap
         );
 
+        setupControls(scene);
+
         startGameLoop();
+    }
+
+    private void setupControls(Scene scene) {
+
+        scene.setOnKeyPressed(event -> {
+
+            if (event.getCode() == KeyCode.G) {
+
+                changeDestination();
+            }
+        });
+    }
+
+    private void changeDestination() {
+
+        if (!alternateGoal) {
+
+            goalRow = 12;
+            goalCol = 13;
+
+            alternateGoal = true;
+
+        } else {
+
+            goalRow = 2;
+            goalCol = 13;
+
+            alternateGoal = false;
+        }
+
+        agent.setDestination(
+                goalRow,
+                goalCol
+        );
     }
 
     private void startGameLoop() {
@@ -65,12 +104,14 @@ public class GameLoop {
             public void handle(long now) {
 
                 if (lastTime == 0) {
+
                     lastTime = now;
                     return;
                 }
 
                 double deltaTime =
-                        (now - lastTime) / 1_000_000_000.0;
+                        (now - lastTime)
+                                / 1_000_000_000.0;
 
                 lastTime = now;
 
@@ -90,7 +131,12 @@ public class GameLoop {
 
     private void render() {
 
-        gc.clearRect(0, 0, 800, 600);
+        gc.clearRect(
+                0,
+                0,
+                800,
+                600
+        );
 
         // Desenha o cenário
         renderMap();
@@ -98,7 +144,7 @@ public class GameLoop {
         // Destaca o caminho calculado pelo A*
         renderPath();
 
-        // Marca o destino
+        // Marca o destino atual
         renderGoal();
 
         // Desenha os personagens
@@ -117,6 +163,12 @@ public class GameLoop {
                 "Y: " + (int) player.getY(),
                 10,
                 40
+        );
+
+        gc.fillText(
+                "Pressione G para alterar o destino",
+                10,
+                580
         );
     }
 
@@ -143,8 +195,8 @@ public class GameLoop {
         gc.setFill(Color.LIMEGREEN);
 
         gc.fillRect(
-                GOAL_COL * TileMap.TILE_SIZE,
-                GOAL_ROW * TileMap.TILE_SIZE,
+                goalCol * TileMap.TILE_SIZE,
+                goalRow * TileMap.TILE_SIZE,
                 TileMap.TILE_SIZE,
                 TileMap.TILE_SIZE
         );
@@ -152,11 +204,16 @@ public class GameLoop {
 
     private void renderMap() {
 
-        for (int row = 0; row < TileMap.HEIGHT; row++) {
+        for (int row = 0;
+             row < TileMap.HEIGHT;
+             row++) {
 
-            for (int col = 0; col < TileMap.WIDTH; col++) {
+            for (int col = 0;
+                 col < TileMap.WIDTH;
+                 col++) {
 
-                Tile tile = tileMap.getTile(row, col);
+                Tile tile =
+                        tileMap.getTile(row, col);
 
                 if (tile.getType() == Tile.Type.WALL) {
 
@@ -166,7 +223,8 @@ public class GameLoop {
 
                     gc.setFill(Color.BURLYWOOD);
 
-                } else if (tile.getType() == Tile.Type.CONTAMINATED) {
+                } else if (tile.getType() ==
+                        Tile.Type.CONTAMINATED) {
 
                     gc.setFill(Color.LIGHTGREEN);
 

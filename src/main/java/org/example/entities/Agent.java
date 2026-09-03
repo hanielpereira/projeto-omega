@@ -18,7 +18,7 @@ public class Agent {
     private final TileMap tileMap;
     private final AStarPathfinder pathfinder;
 
-    private final List<int[]> path;
+    private List<int[]> path;
 
     private int currentPathIndex;
 
@@ -41,6 +41,20 @@ public class Agent {
         this.y = startRow * TileMap.TILE_SIZE
                 + (TileMap.TILE_SIZE - size) / 2.0;
 
+        calculatePath(
+                startRow,
+                startCol,
+                goalRow,
+                goalCol
+        );
+    }
+
+    public void calculatePath(
+            int startRow,
+            int startCol,
+            int goalRow,
+            int goalCol) {
+
         path = pathfinder.findPath(
                 startRow,
                 startCol,
@@ -51,6 +65,22 @@ public class Agent {
         currentPathIndex = 1;
     }
 
+    public void setDestination(int goalRow, int goalCol) {
+
+        int currentRow =
+                (int) (y / TileMap.TILE_SIZE);
+
+        int currentCol =
+                (int) (x / TileMap.TILE_SIZE);
+
+        calculatePath(
+                currentRow,
+                currentCol,
+                goalRow,
+                goalCol
+        );
+    }
+
     public void update(double deltaTime) {
 
         if (path.isEmpty() ||
@@ -58,7 +88,8 @@ public class Agent {
             return;
         }
 
-        int[] targetTile = path.get(currentPathIndex);
+        int[] targetTile =
+                path.get(currentPathIndex);
 
         double targetX =
                 targetTile[1] * TileMap.TILE_SIZE
@@ -71,7 +102,8 @@ public class Agent {
         double dx = targetX - x;
         double dy = targetY - y;
 
-        double distance = Math.sqrt(dx * dx + dy * dy);
+        double distance =
+                Math.sqrt(dx * dx + dy * dy);
 
         if (distance < 2) {
 
