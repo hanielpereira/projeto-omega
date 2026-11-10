@@ -1,115 +1,93 @@
 package org.example.entities;
 
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.paint.Color;
-import org.example.input.Keyboard;
 import org.example.world.Tile;
 import org.example.world.TileMap;
 
-public class Player {
+public final class Player {
+  public double x = TileMap.center(4), y = TileMap.center(13);
+  public double health = 100, stamina = 100, facing = Math.PI / 2, animation, invulnerable;
+  public boolean moving, sprinting, sneaking;
+  private boolean exhausted;
+  public double dodgeTime, dodgeCooldown;
+  private double dodgeX, dodgeY;
+  public static final double RADIUS = 8;
 
-    private double x;
-    private double y;
-
-    private final double width;
-    private final double height;
-
-    private final Keyboard keyboard;
-    private final TileMap tileMap;
-
-    public Player(double x, double y, double width, double height,
-                  Keyboard keyboard, TileMap tileMap) {
-
-        this.x = x;
-        this.y = y;
-
-        this.width = width;
-        this.height = height;
-
-        this.keyboard = keyboard;
-        this.tileMap = tileMap;
+  public void update(double dt, double dx, double dy, boolean sprint, boolean sneak, TileMap map) {
+    invulnerable = Math.max(0, invulnerable - dt);
+    dodgeCooldown = Math.max(0, dodgeCooldown - dt);
+    if (dodgeTime > 0) {
+      dodgeTime = Math.max(0, dodgeTime - dt);
+      moving = true;
+      sprinting = false;
+      for (int i = 0; i < 3; i++) {
+        double nx = x + dodgeX * 290 * dt / 3, ny = y + dodgeY * 290 * dt / 3;
+        if (map.canOccupy(nx, y, RADIUS)) x = nx;
+        if (map.canOccupy(x, ny, RADIUS)) y = ny;
+      }
+      animation += dt * 20;
+      return;
     }
-
-    public void update(double deltaTime) {
-
-        double speed = 250;
-
-        double movementX = 0;
-        double movementY = 0;
-
-        if (keyboard.isUp()) {
-            movementY -= speed * deltaTime;
-        }
-
-        if (keyboard.isDown()) {
-            movementY += speed * deltaTime;
-        }
-
-        if (keyboard.isLeft()) {
-            movementX -= speed * deltaTime;
-        }
-
-        if (keyboard.isRight()) {
-            movementX += speed * deltaTime;
-        }
-
-        if (canMoveTo(x + movementX, y)) {
-            x += movementX;
-        }
-
-        if (canMoveTo(x, y + movementY)) {
-            y += movementY;
-        }
+    double length = Math.hypot(dx, dy);
+    moving = length > 0;
+    sneaking = sneak;
+    if (stamina <= 2) exhausted = true;
+    if (stamina >= 22) exhausted = false;
+    sprinting = moving && sprint && !sneak && !exhausted;
+    double speed = sneak ? 55 : sprinting ? 150 : 95;
+    Tile.Type ground = map.getTile((int) (y / 32), (int) (x / 32)).getType();
+    if (ground == Tile.Type.MUD) speed *= .65;
+    if (ground == Tile.Type.CONTAMINATED) {
+      health = Math.max(0, health - 8 * dt);
+      speed *= .8;
     }
+    stamina = Math.max(0, Math.min(100, stamina + (sprinting ? -25 : 16) * dt));
+    if (!moving) return;
+    dx /= length;
+    dy /= length;
+    facing = Math.atan2(dy, dx);
+    double nx = x + dx * speed * dt, ny = y + dy * speed * dt;
+    if (map.canOccupy(nx, y, RADIUS)) x = nx;
+    if (map.canOccupy(x, ny, RADIUS)) y = ny;
+    animation += dt * (sprinting ? 13 : 8);
+  }
 
-    private boolean canMoveTo(double nextX, double nextY) {
-
-        if (nextX < 0 || nextY < 0) {
-            return false;
-        }
-
-        if (nextX + width > TileMap.WIDTH * TileMap.TILE_SIZE) {
-            return false;
-        }
-
-        if (nextY + height > TileMap.HEIGHT * TileMap.TILE_SIZE) {
-            return false;
-        }
-
-        int leftTile = (int) (nextX / TileMap.TILE_SIZE);
-        int rightTile =
-                (int) ((nextX + width - 1) / TileMap.TILE_SIZE);
-
-        int topTile = (int) (nextY / TileMap.TILE_SIZE);
-        int bottomTile =
-                (int) ((nextY + height - 1) / TileMap.TILE_SIZE);
-
-        for (int row = topTile; row <= bottomTile; row++) {
-
-            for (int col = leftTile; col <= rightTile; col++) {
-
-                Tile tile = tileMap.getTile(row, col);
-
-                if (!tile.isWalkable()) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+  public boolean dodge(double dx, double dy) {
+    if (dodgeCooldown > 0 || stamina < 24) return false;
+    double length = Math.hypot(dx, dy);
+    if (length == 0) {
+      dx = Math.cos(facing);
+      dy = Math.sin(facing);
+      length = 1;
     }
+    dodgeX = dx / length;
+    dodgeY = dy / length;
+    facing = Math.atan2(dodgeY, dodgeX);
+    dodgeTime = .22;
+    dodgeCooldown = 1.05;
+    invulnerable = .27;
+    stamina -= 24;
+    return true;
+  }
 
-    public void render(GraphicsContext gc) {
+  public void damage(double value) {
+    if (invulnerable > 0) return;
+    health = Math.max(0, health - value);
+    invulnerable = 1.2;
+  }
 
-        gc.setFill(Color.BLUE);
-        gc.fillRect(x, y, width, height);
-    }
+  public double getX() {
+    return x;
+  }
 
-    public double getX() {
-        return x;
-    }
+  public double getY() {
+    return y;
+  }
 
-    public double getY() {
-        return y;
-    }
+  public int row() {
+    return (int) (y / 32);
+  }
+
+  public int col() {
+    return (int) (x / 32);
+  }
 }
